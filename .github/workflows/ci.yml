@@ -15,15 +15,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "pnpm"
           cache-dependency-path: implementations/typescript/pnpm-lock.yaml
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-go@v5
         with:
@@ -59,15 +59,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "pnpm"
           cache-dependency-path: implementations/typescript/pnpm-lock.yaml
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-go@v5
         with:
