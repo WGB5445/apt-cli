@@ -16,6 +16,7 @@
     "@aptos-labs/ts-sdk": "^6.1.0"
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "typescript": "^5.9.2"
   }
 }

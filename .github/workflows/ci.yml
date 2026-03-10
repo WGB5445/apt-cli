@@ -31,6 +31,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Show Node and pnpm versions
+        run: |
+          node --version
+          pnpm --version
+
       - name: Install TypeScript dependencies
         working-directory: implementations/typescript
         run: pnpm install --frozen-lockfile
@@ -76,6 +81,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Show Node and pnpm versions
+        run: |
+          node --version
+          pnpm --version
 
       - name: Install TypeScript dependencies
         working-directory: implementations/typescript
