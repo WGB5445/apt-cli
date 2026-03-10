@@ -1,0 +1,12 @@
+{
+  "network": "testnet",
+  "function": "0x1::aptos_account::transfer",
+  "sender_address": "0x111",
+  "args": [
+    "address:0x222",
+    "u64:1000"
+  ],
+  "type_args": [],
+  "abi_enabled": true,
+  "no_sign": true
+}

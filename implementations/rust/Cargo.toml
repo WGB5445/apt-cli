@@ -1,0 +1,7 @@
+[package]
+name = "aptx-rust"
+version = "0.1.0"
+edition = "2021"
+description = "Rust implementation of the Aptos transaction CLI targeting aptos-rust-sdk"
+
+[dependencies]

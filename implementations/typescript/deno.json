@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "@noble/hashes/sha3": "npm:@noble/hashes@1.8.0/sha3"
+  },
+  "tasks": {
+    "aptx": "deno run -A --node-modules-dir=auto src/cli.ts",
+    "check": "deno check --node-modules-dir=auto src/cli.ts"
+  }
+}

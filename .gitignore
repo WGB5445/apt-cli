@@ -1,0 +1,15 @@
+artifacts/
+.cache/
+dist/
+coverage/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+node_modules/
+.pnpm-store/
+implementations/python/.venv_pkgs/
+bin/
+target/
+implementations/go/aptx

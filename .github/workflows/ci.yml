@@ -1,0 +1,148 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: implementations/typescript/pnpm-lock.yaml
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install TypeScript dependencies
+        working-directory: implementations/typescript
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript typecheck
+        working-directory: implementations/typescript
+        run: pnpm exec tsc --noEmit
+
+      - name: Go build
+        working-directory: implementations/go
+        env:
+          GOCACHE: ${{ github.workspace }}/.cache/go-build
+          GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
+        run: go build ./...
+
+      - name: Shared mock conformance
+        run: python3 conformance/run.py
+
+  localnet-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: implementations/typescript/pnpm-lock.yaml
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install TypeScript dependencies
+        working-directory: implementations/typescript
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Aptos CLI
+        run: |
+          curl -fsSL https://aptos.dev/scripts/install_cli.py | python3
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Aptos CLI
+        run: aptos --version
+
+      - name: Run localnet-backed live integration
+        env:
+          APTX_TEST_NETWORK: local
+          APTX_TEST_FULLNODE: http://127.0.0.1:8080/v1
+          APTX_TEST_FAUCET: http://127.0.0.1:8081
+        run: |
+          set -euo pipefail
+          aptos node run-localnet --test-dir /tmp/aptx-localnet-ci --force-restart --assume-yes > /tmp/aptx-localnet.log 2>&1 &
+          APTX_LOCALNET_PID=$!
+          cleanup() {
+            kill "$APTX_LOCALNET_PID" >/dev/null 2>&1 || true
+            wait "$APTX_LOCALNET_PID" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8070/ >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          curl -fsS http://127.0.0.1:8070/ >/dev/null || {
+            cat /tmp/aptx-localnet.log
+            exit 1
+          }
+
+          python3 tests/live_multi_agent.py || {
+            cat /tmp/aptx-localnet.log
+            exit 1
+          }
+
+          (
+            cd implementations/typescript
+            pnpm --silent test:multikey
+          ) || {
+            cat /tmp/aptx-localnet.log
+            exit 1
+          }
+
+          (
+            cd implementations/typescript
+            pnpm --silent test:multisig
+          ) || {
+            cat /tmp/aptx-localnet.log
+            exit 1
+          }
+
+          (
+            cd implementations/go
+            GOCACHE="${{ github.workspace }}/.cache/go-build" \
+            GOMODCACHE="${{ github.workspace }}/.cache/go-mod" \
+            go test ./integration -run 'Test(OnChainMultisig|CLIOnChainMultisig)' -v
+          ) || {
+            cat /tmp/aptx-localnet.log
+            exit 1
+          }
